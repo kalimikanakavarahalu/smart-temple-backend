@@ -59,5 +59,31 @@ def request_darshan_permission(req: DarshanRequest, db: Session = Depends(get_db
         "qr_code": qr_code_b64
     }
 
+class DarshanScan(BaseModel):
+    qr_data_string: str
 
+@router.post("/darshan/scan")
+def scan_darshan_qr(req: DarshanScan, db: Session = Depends(get_db)):
+    # Parse the JSON string stored in the QR code
+    try:
+        data = json.loads(req.qr_data_string)
+        user_id = data.get("user_id")
+        date_str = data.get("date")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid QR Code format")
+
+    # Verify in DB
+    permission = db.query(DarshanPermission).filter(
+        DarshanPermission.user_id == user_id, 
+        DarshanPermission.status == "approved"
+    ).first()
+    
+    if not permission:
+        raise HTTPException(status_code=404, detail="No approved darshan found for this QR")
+
+    # In a real app, we would mark it as 'used' here so they can't enter twice
+    permission.status = "completed"
+    db.commit()
+
+    return {"status": "success", "message": "QR Code Verified. Devotee allowed to enter."}
 
