@@ -61,7 +61,3 @@ def request_darshan_permission(req: DarshanRequest, db: Session = Depends(get_db
 
 
 
-@router.get("/crowd/status")
-async def get_crowd_status():
-    """Stub endpoint for crowd video analytics and stampede warning."""
-    return {"status": "success", "density_level": "normal", "alerts": []}

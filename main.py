@@ -3,6 +3,7 @@ from src.api.routes import router as api_router
 from src.api.auth import router as auth_router
 from src.api.assets import router as assets_router
 from src.api.donations import router as donations_router
+from src.api.crowd import router as crowd_router
 
 app = FastAPI(
     title="Smart Temple Backend",
@@ -13,6 +14,7 @@ app = FastAPI(
 app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(assets_router, prefix="/api/assets", tags=["Staff & Assets"])
 app.include_router(donations_router, prefix="/api/donations", tags=["Donations & E-Hundi"])
+app.include_router(crowd_router, prefix="/api/crowd", tags=["Crowd Analytics"])
 app.include_router(api_router, prefix="/api", tags=["Modules"])
 
 @app.get("/api/health")  
