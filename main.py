@@ -4,6 +4,10 @@ from src.api.auth import router as auth_router
 from src.api.assets import router as assets_router
 from src.api.donations import router as donations_router
 from src.api.crowd import router as crowd_router
+from src.models.database import engine, Base
+
+# Create tables in the database
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Smart Temple Backend",

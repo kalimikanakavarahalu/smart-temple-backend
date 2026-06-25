@@ -24,7 +24,7 @@ class RFIDScan(BaseModel):
 @router.post("/register")
 def register_asset(asset: AssetCreate, db: Session = Depends(get_db)):
     """Register a new asset with an RFID tag."""
-    db_asset = Asset(**asset.model_dump())
+    db_asset = Asset(**asset.dict())
     db.add(db_asset)
     db.commit()
     db.refresh(db_asset)

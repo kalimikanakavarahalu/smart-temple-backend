@@ -5,10 +5,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Get DB URL from env, fallback to a local default if missing
-SQLALCHEMY_DATABASE_URL = os.getenv("DB_URL", "postgresql://temple_admin:temple_secure@localhost:5432/smart_temple")
+# Use SQLite for easy local testing without needing Docker setup immediately
+SQLALCHEMY_DATABASE_URL = os.getenv("DB_URL", "sqlite:///./smart_temple.db")
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
