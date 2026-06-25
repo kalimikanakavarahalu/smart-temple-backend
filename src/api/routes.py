@@ -5,43 +5,43 @@ from datetime import datetime
 import json
 
 from src.models.database import get_db
-from src.models.entities import DarshanPermission, User
+from src.models.entities import DarshanPermission, User, UserRole
 from src.services.qr_service import generate_qr_base64
 from src.agents.permission_agent import evaluate_darshan_request
+from src.schemas.response import APIResponse, success_response, error_response
+from src.middleware.dependencies import get_current_user, require_staff
 
 router = APIRouter()
 
 class DarshanRequest(BaseModel):
-    user_id: int
     date: datetime
     slot: str
 
-@router.get("/devotees")
+class DarshanScan(BaseModel):
+    qr_data_string: str
+
+@router.get("/devotees", response_model=APIResponse)
 async def get_devotees():
     """Stub endpoint for devotee app basics."""
-    return {"status": "success", "data": [], "message": "Devotees endpoint ready."}
+    return success_response("Devotees endpoint ready.", [])
 
-@router.post("/darshan/request")
-def request_darshan_permission(req: DarshanRequest, db: Session = Depends(get_db)):
-    # 1. Fetch User to get role
-    user = db.query(User).filter(User.id == req.user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-        
-    # 2. Agent evaluates the request
-    evaluation = evaluate_darshan_request(user.id, req.date, user.role.value)
+@router.post("/darshan/request", response_model=APIResponse)
+def request_darshan_permission(req: DarshanRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Book Darshan and generate a QR Code. Devotee only (or anyone logged in)."""
+    # 1. Agent evaluates the request
+    evaluation = evaluate_darshan_request(current_user.id, req.date, current_user.role.value)
     
     status = evaluation["status"]
     qr_code_b64 = None
     
-    # 3. If approved, generate QR
+    # 2. If approved, generate QR
     if status == "approved":
-        qr_data = json.dumps({"user_id": user.id, "date": str(req.date), "slot": req.slot})
+        qr_data = json.dumps({"user_id": current_user.id, "date": str(req.date), "slot": req.slot})
         qr_code_b64 = generate_qr_base64(qr_data)
         
-    # 4. Save to DB
+    # 3. Save to DB
     permission = DarshanPermission(
-        user_id=user.id,
+        user_id=current_user.id,
         date=req.date,
         slot=req.slot,
         status=status,
@@ -51,26 +51,26 @@ def request_darshan_permission(req: DarshanRequest, db: Session = Depends(get_db
     db.commit()
     db.refresh(permission)
     
-    return {
-        "status": "success", 
-        "permission_status": status,
-        "reason": evaluation["reason"],
-        "permission_id": permission.id,
-        "qr_code": qr_code_b64
-    }
+    return success_response(
+        "Darshan request processed",
+        {
+            "permission_status": status,
+            "reason": evaluation["reason"],
+            "permission_id": permission.id,
+            "qr_code": qr_code_b64
+        }
+    )
 
-class DarshanScan(BaseModel):
-    qr_data_string: str
-
-@router.post("/darshan/scan")
-def scan_darshan_qr(req: DarshanScan, db: Session = Depends(get_db)):
+@router.post("/darshan/scan", response_model=APIResponse)
+def scan_darshan_qr(req: DarshanScan, db: Session = Depends(get_db), current_user: User = Depends(require_staff)):
+    """Scan the QR code at the temple entrance. Staff only."""
     # Parse the JSON string stored in the QR code
     try:
         data = json.loads(req.qr_data_string)
         user_id = data.get("user_id")
         date_str = data.get("date")
     except Exception:
-        raise HTTPException(status_code=400, detail="Invalid QR Code format")
+        return error_response("Invalid QR Code format")
 
     # Verify in DB
     permission = db.query(DarshanPermission).filter(
@@ -79,11 +79,10 @@ def scan_darshan_qr(req: DarshanScan, db: Session = Depends(get_db)):
     ).first()
     
     if not permission:
-        raise HTTPException(status_code=404, detail="No approved darshan found for this QR")
+        return error_response("No approved darshan found for this QR")
 
-    # In a real app, we would mark it as 'used' here so they can't enter twice
+    # Mark as 'used'
     permission.status = "completed"
     db.commit()
 
-    return {"status": "success", "message": "QR Code Verified. Devotee allowed to enter."}
-
+    return success_response("QR Code Verified. Devotee allowed to enter.")

@@ -18,6 +18,8 @@ class User(Base):
     phone = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     role = Column(Enum(UserRole), default=UserRole.DEVOTEE)
+    reset_otp = Column(String, nullable=True)
+    otp_expiry = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 class Asset(Base):
