@@ -60,10 +60,6 @@ def request_darshan_permission(req: DarshanRequest, db: Session = Depends(get_db
     }
 
 
-@router.post("/donations")
-async def make_donation():
-    """Stub endpoint for digital donations processing."""
-    return {"status": "success", "transaction_id": "tx_stub_123", "message": "Donation recorded on ledger."}
 
 @router.get("/crowd/status")
 async def get_crowd_status():
