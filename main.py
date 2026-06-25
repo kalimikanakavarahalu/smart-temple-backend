@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from src.api.routes import router as api_router
 
 app = FastAPI(
     title="Smart Temple Backend",
@@ -6,7 +7,9 @@ app = FastAPI(
     version="1.0.0"
 )
 
-@app.get("/api/health")
+app.include_router(api_router, prefix="/api")
+
+@app.get("/api/health")  
 async def health_check():
     """Health check endpoint to verify backend is running."""
     return {"status": "ok", "message": "Smart Temple Backend is up and running!"}
