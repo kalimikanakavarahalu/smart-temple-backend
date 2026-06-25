@@ -59,10 +59,6 @@ def request_darshan_permission(req: DarshanRequest, db: Session = Depends(get_db
         "qr_code": qr_code_b64
     }
 
-@router.get("/assets/tracking")
-async def get_asset_locations():
-    """Stub endpoint for staff attendance and asset tracker."""
-    return {"status": "success", "assets": [], "alerts": []}
 
 @router.post("/donations")
 async def make_donation():
